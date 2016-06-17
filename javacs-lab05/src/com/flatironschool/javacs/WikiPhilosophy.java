@@ -28,19 +28,8 @@ public class WikiPhilosophy {
 	private static boolean checkValid (String currURL, Element element) {
 		String validLink = "http://en.wikipedia.org" + element.attr("href");
 		//base case
-		if (element.attr("href").equals("")) {
-			return false;
-		}
-		else if (currURL.equals(validLink)) {
-			return false;
-		}
-		else if (isItalics(element)) {
-			return false;
-		}
-		else if(element.attr("href").startsWith("/wiki/Help:")) {
-			return false;
-		}
-		else if (element.attr("href").startsWith("#cite_note")) {
+		if (element.attr("href").equals("") || currURL.equals(validLink) || isItalics(element) 
+			||element.attr("href").startsWith("/wiki/Help:") || element.attr("href").startsWith("#cite_note")) {
 			return false;
 		}
 		else {
