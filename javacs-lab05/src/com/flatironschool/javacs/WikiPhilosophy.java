@@ -2,8 +2,9 @@ package com.flatironschool.javacs;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
-
+import java.util.*;
+import java.lang.*;
+import java.util.StringTokenizer;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
@@ -12,30 +13,58 @@ import org.jsoup.select.Elements;
 
 public class WikiPhilosophy {
 	final static WikiFetcher wf = new WikiFetcher();
-
-	private static String findFirstValidURL(Iterable<Node> iter, String currURL) {
-		for (Node node: iter) {
-			if (node instanceof Element) {
-				Element tempElement = (Element) node;
-				if (checkValid(currURL, tempElement)) {
-					return "http://en.wikipedia.org" + node.attr("href");
+	public static Deque<String> parenthesis = new ArrayDeque<String>();
+	private static Element findFirstValidURL(Elements paragraphs) {
+		for(Element paragraph: paragraphs) {
+			Iterable<Node> iter = new WikiNodeIterable(paragraph);
+			for (Node node: iter) {
+				if (node instanceof Element) {
+					Element tempElement = (Element) node;
+					if(tempElement.tagName().equals("a") && parenthesis.isEmpty()) {
+						Elements parents = tempElement.parents();
+						if (!(parents.hasAttr("i"))) {
+							if(!parents.hasAttr("em")) {
+								return tempElement;
+							}
+						}
+					}
 				}
-			}
-        }
+				if (node instanceof TextNode) {
+					TextNode n = (TextNode) node;
+					System.out.println(node);
+					
+					StringTokenizer st = new StringTokenizer(n.text(),"()",true);
+					while (st.hasMoreTokens()) {
+						String token = st.nextToken();
+						if(token.equals("(")) {
+							parenthesis.push(token);
+						}
+						if (token.equals(")")) {
+							if (!parenthesis.isEmpty()) {
+								parenthesis.pop();
+							}
+							else {
+								System.err.print("Unbalanced parenthesis");
+							}
+						}
+					}
+				}
+	        }
+	     }
         return null;
 	}
 
-	private static boolean checkValid (String currURL, Element element) {
-		String validLink = "http://en.wikipedia.org" + element.attr("href");
-		//base case
-		if (element.attr("href").equals("") || currURL.equals(validLink) || isItalics(element) 
-			||element.attr("href").startsWith("/wiki/Help:") || element.attr("href").startsWith("#cite_note")) {
-			return false;
-		}
-		else {
-			return true;
-		}
-	}
+	// private static boolean checkValid (String currURL, Element element) {
+	// 	String validLink = "http://en.wikipedia.org" + element.attr("href");
+	// 	//base case
+	// 	if (element.attr("href").equals("") || currURL.equals(validLink) || isItalics(element) 
+	// 		||element.attr("href").startsWith("/wiki/Help:") || element.attr("href").startsWith("#cite_note")) {
+	// 		return false;
+	// 	}
+	// 	else {
+	// 		return true;
+	// 	}
+	// }
 
 
 	private static boolean isItalics(Element element) {
@@ -64,37 +93,52 @@ public class WikiPhilosophy {
 	 * @throws IOException
 	 */
 	public static void main(String[] args) throws IOException {
-		System.out.println("testing");
 		String url = "https://en.wikipedia.org/wiki/Java_(programming_language)";
 		boolean isPhilosophy = false;
 		List<String> urlList = new ArrayList<String>();
-		while (!isPhilosophy) {
-			System.out.println("ENTERED INTO WHILE LOOP");
-			Elements paragraphs = wf.fetchWikipedia(url);
-			Element firstPara = paragraphs.get(0);
-			System.out.println("the first para:" + firstPara);
-			urlList.add(url);
-			Iterable<Node> iter = new WikiNodeIterable(firstPara);
-			String firstValidURL = findFirstValidURL(iter, url);
-			System.out.println("firstValidURL" + firstValidURL);
-			String philosophy = "https://en.wikipedia.org/wiki/Philosophy";
-			if (firstValidURL!=null && url.equals(philosophy)) {
-				urlList.add(firstValidURL);
-				isPhilosophy = true;
+		String philosophy = "https://en.wikipedia.org/wiki/Philosophy";
+		Elements paragraphs = wf.fetchWikipedia(url);
+		
+		for(int i = 0; i<20; i++) {
+			if (urlList.contains(url)) {
+				System.out.println("error:linkvisited.");
 			}
-			if (firstValidURL!=null && (!url.equals(philosophy))) {
-				url = firstValidURL;
+			else {
+				urlList.add(url);
 			}
-			if (firstValidURL==null) {
-				System.out.println("An occur has occured.");
-				isPhilosophy = true;
-			}
-		}
 
-		for(String temporaryURL: urlList) {
-				System.out.println(temporaryURL);
+			Element firstPara = findFirstValidURL(paragraphs);
+
+			if (firstPara == null) {
+				System.out.println("ERROR: NULL URL");
+			}
+			else {
+				String link = "https://en.wikipedia.org" + firstPara.attr("href");
+				if(link.equals(philosophy)) {
+					isPhilosophy = true;
+					break;
+				}
+			}
 		}
+		// urlList.add(url);
+		// Iterable<Node> iter = new WikiNodeIterable(firstPara);
+		// String firstValidURL = findFirstValidURL(iter, url);
+		// System.out.println("firstValidURL" + firstValidURL);
+
+		// if (firstValidURL!=null && url.equals(philosophy)) {
+		// 	urlList.add(firstValidURL);
+		// 	isPhilosophy = true;
+		// }
+		// if (firstValidURL!=null && (!url.equals(philosophy))) {
+		// 	url = firstValidURL;
+		// }
+		// if (firstValidURL==null) {
+		// 	System.out.println("An occur has occured.");
+
+		// }
 	}
+
+		
         // some example code to get you started
 
 		// String url = "https://en.wikipedia.org/wiki/Java_(programming_language)";
